@@ -92,6 +92,11 @@
   .card.pack{border-radius:22px;position:relative}
   .card h3{margin:0 0 8px;font-size:18px}
   .card p{margin:0;color:var(--muted);font-size:15px}
+  .card.news{display:flex;flex-direction:column;gap:6px;animation:newsIn .5s cubic-bezier(.22,.61,.36,1) both}
+  .card.news .newsDate{font-size:13px;color:var(--muted)}
+  .card.news h3{margin:0}
+  @keyframes newsIn{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+  @media (prefers-reduced-motion:reduce){.card.news{animation:none}}
   .icon{width:44px;height:44px;border-radius:12px;display:grid;place-items:center;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.14);font-size:22px;margin-bottom:14px}
 
   .pack{display:grid;grid-template-columns:120px 1fr;gap:22px;align-items:start}
@@ -246,6 +251,7 @@
     <a class="brand" href="#"><img src="assets/logo-crystal-900.png?v=3" alt="DodoShield" style="border-radius:0;width:44px;height:auto">DodoShield</a>
     <ul>
       <li><a href="#packs">Збірки</a></li>
+      <li><a href="#news" id="newsNavLink" style="display:none">Новини</a></li>
       <li><a href="#launcher">Лаунчер</a></li>
       <li><a href="#start">Як почати</a></li>
     </ul>
@@ -307,6 +313,15 @@
         </div>
       </div>
     </div>
+  </div>
+</section>
+
+<!-- Filled from news.json, which the news service builds from pinned Discord posts. -->
+<section id="news" style="display:none">
+  <div class="wrap">
+    <h2 class="reveal">Новини</h2>
+    <p class="lead reveal" data-delay="1">Те саме, що бачать гравці в лаунчері.</p>
+    <div class="grid c3" id="newsGrid"></div>
   </div>
 </section>
 
@@ -445,6 +460,35 @@
     if (!en.isIntersecting) en.target.classList.remove('in')
   }), { rootMargin: `${REVEAL_LIFT * 2}px 0px ${REVEAL_LIFT * 2}px 0px` })
   document.querySelectorAll('.reveal').forEach(el => { showIO.observe(el); hideIO.observe(el) })
+
+  // News: pinned posts from the Discord news channel, written to news.json by the news service.
+  // The section stays hidden when there is nothing to show or the file is unavailable.
+  fetch('news.json?t=' + Date.now(), { cache: 'no-store' })
+    .then(r => r.ok ? r.json() : Promise.reject(new Error('HTTP ' + r.status)))
+    .then(data => {
+      const items = (Array.isArray(data) ? data : data.news) || []
+      if (!items.length) return
+      const grid = document.getElementById('newsGrid')
+      const fmt = new Intl.DateTimeFormat('uk-UA', { day: 'numeric', month: 'long' })
+      items.slice(0, 3).forEach((item, i) => {
+        const parsed = item.date ? new Date(item.date) : null
+        const card = document.createElement('div')
+        card.className = 'card news'
+        card.style.animationDelay = (i * 0.08) + 's'
+        const date = document.createElement('span')
+        date.className = 'newsDate'
+        date.textContent = parsed && !isNaN(parsed) ? fmt.format(parsed) : (item.date || '')
+        const title = document.createElement('h3')
+        title.textContent = item.title || ''
+        const text = document.createElement('p')
+        text.textContent = item.text || ''
+        card.append(date, title, text)
+        grid.appendChild(card)
+      })
+      document.getElementById('news').style.display = ''
+      document.getElementById('newsNavLink').style.display = ''
+    })
+    .catch(() => { /* no news block, no noise */ })
 
   // Hero logo follows the cursor (3D tilt + parallax)
   // Pseudo-3D logo: tilt + moving specular highlight + shadow that shifts with the light
