@@ -1,0 +1,12 @@
+# Секрети — ніколи не комітимо
+*token*.txt
+*secret*
+api.txt
+.secrets/
+
+# Службове
+node_modules/
+*.log
+status.json
+Thumbs.db
+.DS_Store
