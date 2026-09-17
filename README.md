@@ -41,4 +41,4 @@ scp assets/* minecraft@<host>:/home/minecraft/site/assets/
 
 ## Пов'язане
 
-Лаунчер мережі — [DodoShield-Launcher](https://github.com/Sebastian-xD/DodoShield-Launcher).
+Лаунчер мережі — [DodoShield-Launcher](https://github.com/Dodoshield-Team/DodoShield-Launcher).
