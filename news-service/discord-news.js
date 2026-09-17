@@ -143,15 +143,58 @@ async function tick() {
     }
 }
 
+// Run without DISCORD_CHANNEL_ID to print the channels the bot can see, so the news
+// channel id can be picked from the logs instead of the Discord UI.
+async function listChannels() {
+    const me = await api('/users/@me')
+    log('signed in as:', me.username + (me.discriminator && me.discriminator !== '0' ? '#' + me.discriminator : ''), '(' + me.id + ')')
+    const guilds = await api('/users/@me/guilds')
+    for (const guild of guilds) {
+        log('guild:', guild.name, '(' + guild.id + ')')
+        try {
+            const member = await api(`/guilds/${guild.id}/members/${me.id}`)
+            const roles = await api(`/guilds/${guild.id}/roles`)
+            const names = (member.roles || []).map(id => {
+                const role = roles.find(r => r.id === id)
+                return role ? role.name : id
+            })
+            log('   roles:', names.length ? names.join(', ') : '(none)')
+        } catch (err) {
+            log('   could not read own roles:', err.message)
+        }
+        try {
+            const channels = await api(`/guilds/${guild.id}/channels`)
+            channels
+                .filter(c => c.type === 0 || c.type === 5)   // text and announcement channels
+                .sort((a, b) => (a.position || 0) - (b.position || 0))
+                .forEach(c => log('   #' + c.name, '->', c.id))
+        } catch (err) {
+            log('   could not list channels:', err.message)
+        }
+    }
+}
+
 if (TOKEN == null) {
     log('no bot token at', TOKEN_FILE, '- nothing to do')
     process.exit(1)
 }
 if (!CHANNEL_ID) {
-    log('DISCORD_CHANNEL_ID is not set - nothing to do')
+    log('DISCORD_CHANNEL_ID is not set - listing what the bot can see instead')
+    listChannels()
+        .catch(err => log('could not list guilds:', err.message))
+        .then(() => process.exit(0))
+    return
+}
+
+if (!/^\d+$/.test(CHANNEL_ID)) {
+    log('DISCORD_CHANNEL_ID must be the numeric channel id, got:', CHANNEL_ID)
+    log('In Discord: Settings -> Advanced -> Developer Mode, then right click the channel -> Copy Channel ID')
     process.exit(1)
 }
 
 log('watching channel', CHANNEL_ID, '| targets:', TARGETS.join(', '))
+api(`/channels/${CHANNEL_ID}`)
+    .then(channel => log('channel name: #' + channel.name))
+    .catch(err => log('cannot read the channel:', err.message))
 tick()
 setInterval(tick, POLL_MS)

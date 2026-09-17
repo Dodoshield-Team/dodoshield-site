@@ -480,9 +480,13 @@
         date.textContent = parsed && !isNaN(parsed) ? fmt.format(parsed) : (item.date || '')
         const title = document.createElement('h3')
         title.textContent = item.title || ''
-        const text = document.createElement('p')
-        text.textContent = item.text || ''
-        card.append(date, title, text)
+        card.append(date, title)
+        // A one-line post has no body: skip the empty paragraph instead of leaving a gap.
+        if (item.text) {
+          const text = document.createElement('p')
+          text.textContent = item.text
+          card.append(text)
+        }
         grid.appendChild(card)
       })
       document.getElementById('news').style.display = ''
